@@ -1,0 +1,134 @@
+@startuml Diagrama_Casos_Uso_Sistema_Reconocimiento_Facial
+
+title Sistema de Seguridad con Reconocimiento Facial - Casos de Uso
+
+' Actores del sistema
+actor "Administrador" as admin
+actor "Personal de Seguridad" as security
+actor "Empleado" as employee
+actor "Visitante" as visitor
+actor "Sistema de Cámara" as camera
+actor "Sistema de Notificaciones" as notification
+
+' Casos de uso principales basados en requisitos funcionales
+package "Gestión de Usuarios (RF1)" {
+  usecase "Registrar Usuario" as UC01
+  usecase "Capturar Rostro" as UC02
+  usecase "Generar Embedding Facial" as UC03
+  usecase "Asignar Rol y Permisos" as UC04
+}
+
+package "Reconocimiento Facial en Tiempo Real (RF2, RF3)" {
+  usecase "Detectar Rostro en Cámara" as UC05
+  usecase "Capturar Imagen Facial" as UC06
+  usecase "Procesar Embedding" as UC07
+  usecase "Comparar con Base de Datos" as UC08
+  usecase "Verificar Liveness" as UC09
+}
+
+package "Control de Acceso (RF4)" {
+  usecase "Evaluar Reglas de Acceso" as UC10
+  usecase "Verificar Horarios" as UC11
+  usecase "Verificar Zonas Permitidas" as UC12
+  usecase "Tomar Decisión de Acceso" as UC13
+}
+
+package "Registro y Auditoría (RF5, RF7)" {
+  usecase "Registrar Acceso" as UC14
+  usecase "Almacenar Evidencia Visual" as UC15
+  usecase "Generar Log de Auditoría" as UC16
+  usecase "Calcular Score de Confianza" as UC17
+}
+
+package "Sistema de Alertas (RF6)" {
+  usecase "Detectar Rostro No Autorizado" as UC18
+  usecase "Detectar Falla de Liveness" as UC19
+  usecase "Generar Alerta de Seguridad" as UC20
+  usecase "Clasificar Tipo de Alerta" as UC21
+}
+
+package "Dashboard y Monitoreo (RF8)" {
+  usecase "Visualizar Accesos en Tiempo Real" as UC22
+  usecase "Consultar Historial de Accesos" as UC23
+  usecase "Ver Estadísticas por Usuario" as UC24
+  usecase "Ver Estadísticas por Zona" as UC25
+  usecase "Generar Reportes" as UC26
+}
+
+package "Sistema de Notificaciones (RF9)" {
+  usecase "Configurar Canales de Notificación" as UC27
+  usecase "Enviar Notificación Email" as UC28
+  usecase "Enviar Notificación Telegram" as UC29
+  usecase "Registrar Notificación Interna" as UC30
+}
+
+package "Gestión de Reglas (RF10)" {
+  usecase "Crear Regla de Acceso" as UC31
+  usecase "Modificar Regla de Acceso" as UC32
+  usecase "Eliminar Regla de Acceso" as UC33
+  usecase "Aplicar Reglas Automáticamente" as UC34
+}
+
+' Relaciones entre actores y casos de uso
+
+' Administrador
+admin --> UC01 : gestiona
+admin --> UC04 : asigna
+admin --> UC27 : configura
+admin --> UC31 : crea
+admin --> UC32 : modifica
+admin --> UC33 : elimina
+admin --> UC26 : genera
+
+' Personal de Seguridad
+security --> UC22 : monitorea
+security --> UC23 : consulta
+security --> UC24 : analiza
+security --> UC25 : analiza
+security --> UC26 : consulta
+
+' Empleado/Visitante
+employee --> UC02 : participa en
+visitor --> UC02 : participa en
+
+' Sistema de Cámara
+camera --> UC05 : ejecuta
+camera --> UC06 : ejecuta
+
+' Sistema de Notificaciones
+notification --> UC28 : ejecuta
+notification --> UC29 : ejecuta
+notification --> UC30 : ejecuta
+
+' Relaciones include y extend
+UC01 ..> UC02 : <<include>>
+UC02 ..> UC03 : <<include>>
+UC05 ..> UC06 : <<include>>
+UC06 ..> UC07 : <<include>>
+UC07 ..> UC08 : <<include>>
+UC08 ..> UC09 : <<include>>
+UC13 ..> UC10 : <<include>>
+UC10 ..> UC11 : <<include>>
+UC10 ..> UC12 : <<include>>
+UC13 ..> UC14 : <<include>>
+UC14 ..> UC15 : <<include>>
+UC14 ..> UC16 : <<include>>
+UC14 ..> UC17 : <<include>>
+
+UC08 ..> UC18 : <<extend>>
+UC09 ..> UC19 : <<extend>>
+UC18 ..> UC20 : <<include>>
+UC19 ..> UC20 : <<include>>
+UC20 ..> UC21 : <<include>>
+UC20 ..> UC28 : <<extend>>
+UC20 ..> UC29 : <<extend>>
+UC20 ..> UC30 : <<extend>>
+
+UC13 ..> UC34 : <<include>>
+
+note right of UC07 : Tiempo de procesamiento < 500ms (RNF1)
+note right of UC08 : Comparación con embeddings encriptados (RNF4)
+note right of UC22 : Interfaz intuitiva para personal de seguridad (RNF6)
+note right of UC03 : Soporte para Transfer Learning (RNF7)
+
+@enduml

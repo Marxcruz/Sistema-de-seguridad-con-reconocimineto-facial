@@ -1,0 +1,278 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Rol {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique @db.VarChar(50)
+  creadoEn DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+  usuarios Usuario[]
+
+  @@map("roles")
+}
+
+model TipoDecision {
+  id      Int      @id @default(autoincrement())
+  nombre  String   @unique @db.VarChar(20)
+  accesos Acceso[]
+
+  @@map("tipo_decision")
+}
+
+model TipoAlerta {
+  id      Int      @id @default(autoincrement())
+  nombre  String   @unique @db.VarChar(50)
+  alertas Alerta[]
+
+  @@map("tipo_alerta")
+}
+
+model TipoPunto {
+  id            Int            @id @default(autoincrement())
+  nombre        String         @unique @db.VarChar(40)
+  puntosControl PuntoControl[]
+
+  @@map("tipo_punto")
+}
+
+model TipoEvidencia {
+  id         Int         @id @default(autoincrement())
+  nombre     String      @unique @db.VarChar(20)
+  evidencias Evidencia[]
+
+  @@map("tipo_evidencia")
+}
+
+model CanalNotificacion {
+  id             Int            @id @default(autoincrement())
+  nombre         String         @unique @db.VarChar(30)
+  notificaciones Notificacion[]
+
+  @@map("canal_notificacion")
+}
+
+model ModeloFacial {
+  id                    Int                   @id @default(autoincrement())
+  nombre                String                @db.VarChar(50)
+  version               String                @db.VarChar(20)
+  creadoEn              DateTime              @default(now()) @map("creado_en") @db.Timestamptz(6)
+  imagenesEntrenamiento ImagenEntrenamiento[]
+  rostros               Rostro[]
+
+  @@unique([nombre, version])
+  @@map("modelos_faciales")
+}
+
+model Usuario {
+  id                    Int                   @id @default(autoincrement())
+  nombre                String                @db.VarChar(120)
+  apellido              String?               @db.VarChar(120)
+  documento             String?               @unique @db.VarChar(50)
+  email                 String?               @unique @db.VarChar(255)
+  telefono              String?               @db.VarChar(20)
+  password              String?               @db.VarChar(255)
+  rolId                 Int                   @map("rol_id")
+  activo                Boolean               @default(true)
+  intentosFallidos      Int                   @default(0) @map("intentos_fallidos")
+  ultimoAcceso          DateTime?             @map("ultimo_acceso") @db.Timestamptz(6)
+  creadoEn              DateTime              @default(now()) @map("creado_en") @db.Timestamptz(6)
+  accesos               Acceso[]
+  imagenesEntrenamiento ImagenEntrenamiento[]
+  logAuditoria          LogAuditoria[]
+  reglasAcceso          ReglaAcceso[]
+  rostros               Rostro[]
+  rol                   Rol                   @relation(fields: [rolId], references: [id])
+
+  @@map("usuarios")
+}
+
+model Rostro {
+  id        Int           @id @default(autoincrement())
+  usuarioId Int           @map("usuario_id")
+  embedding Bytes
+  calidad   Float?        @db.Real
+  modeloId  Int?          @map("modelo_id")
+  creadoEn  DateTime      @default(now()) @map("creado_en") @db.Timestamptz(6)
+  modelo    ModeloFacial? @relation(fields: [modeloId], references: [id])
+  usuario   Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([usuarioId, modeloId])
+  @@map("rostros")
+}
+
+model ImagenEntrenamiento {
+  id          Int           @id @default(autoincrement())
+  usuarioId   Int?          @map("usuario_id")
+  path        String
+  hash        String        @db.VarChar(64)
+  calidad     Float?        @db.Real
+  mimeType    String?       @map("mime_type") @db.VarChar(50)
+  tamanoBytes BigInt?       @map("tamano_bytes")
+  modeloId    Int?          @map("modelo_id")
+  creadoEn    DateTime      @default(now()) @map("creado_en") @db.Timestamptz(6)
+  modelo      ModeloFacial? @relation(fields: [modeloId], references: [id])
+  usuario     Usuario?      @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([hash])
+  @@map("imagenes_entrenamiento")
+}
+
+model Zona {
+  id            Int            @id @default(autoincrement())
+  nombre        String         @unique @db.VarChar(80)
+  descripcion   String?
+  activo        Boolean        @default(true)
+  puntosControl PuntoControl[]
+  reglasAcceso  ReglaAcceso[]
+
+  @@map("zonas")
+}
+
+model PuntoControl {
+  id         Int       @id @default(autoincrement())
+  zonaId     Int       @map("zona_id")
+  nombre     String    @db.VarChar(80)
+  tipoId     Int       @map("tipo_id")
+  activo     Boolean   @default(true)
+  ubicacion  String?   @db.VarChar(120)
+  
+  // Configuración de cámara IP para múltiples puntos
+  cameraUrl  String?   @map("camera_url") @db.VarChar(255)
+  cameraUser String?   @map("camera_user") @db.VarChar(50)
+  cameraPass String?   @map("camera_pass") @db.VarChar(100)
+  streamType String?   @map("stream_type") @db.VarChar(20)  // RTSP, HTTP, USB, ONVIF
+  
+  creadoEn   DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+  accesos    Acceso[]
+  alertas    Alerta[]
+  tipo       TipoPunto @relation(fields: [tipoId], references: [id])
+  zona       Zona      @relation(fields: [zonaId], references: [id])
+
+  @@index([zonaId])
+  @@map("puntos_control")
+}
+
+model Evidencia {
+  id            Int            @id @default(autoincrement())
+  uuid          String         @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tipoId        Int            @map("tipo_id")
+  path          String
+  hash          String?        @db.VarChar(64)
+  mimeType      String?        @map("mime_type") @db.VarChar(50)
+  tamanoBytes   BigInt?        @map("tamano_bytes")
+  metadata      Json?          @map("metadata")
+  creadoEn      DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
+  accesoRostros AccesoRostro[]
+  accesos       Acceso[]
+  alertas       Alerta[]
+  tipo          TipoEvidencia  @relation(fields: [tipoId], references: [id])
+
+  @@map("evidencias")
+}
+
+model Acceso {
+  id            Int            @id @default(autoincrement())
+  uuid          String         @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuarioId     Int            @map("usuario_id")
+  puntoId       Int            @map("punto_id")
+  score         Float?         @db.Real
+  decisionId    Int            @map("decision_id")
+  livenessOk    Boolean?       @map("liveness_ok")
+  evidenciaId   Int?           @map("evidencia_id")
+  creadoEn      DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
+  accesoRostros AccesoRostro[]
+  decision      TipoDecision   @relation(fields: [decisionId], references: [id])
+  evidencia     Evidencia?     @relation(fields: [evidenciaId], references: [id])
+  punto         PuntoControl   @relation(fields: [puntoId], references: [id])
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id])
+
+  @@index([creadoEn], map: "idx_accesos_creado")
+  @@index([usuarioId, creadoEn], map: "idx_accesos_usuario_fecha")
+  @@index([puntoId, creadoEn], map: "idx_accesos_punto_fecha")
+  @@index([decisionId], map: "idx_accesos_decision")
+  @@map("accesos")
+}
+
+model AccesoRostro {
+  id          Int        @id @default(autoincrement())
+  accesoId    Int        @map("acceso_id")
+  usuarioId   Int        @map("usuario_id")
+  score       Float?     @db.Real
+  livenessOk  Boolean?   @map("liveness_ok")
+  evidenciaId Int?       @map("evidencia_id")
+  acceso      Acceso     @relation(fields: [accesoId], references: [id])
+  evidencia   Evidencia? @relation(fields: [evidenciaId], references: [id])
+
+  @@index([accesoId])
+  @@map("acceso_rostros")
+}
+
+model Alerta {
+  id             Int            @id @default(autoincrement())
+  uuid           String         @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tipoId         Int            @map("tipo_id")
+  detalle        String?
+  puntoId        Int?           @map("punto_id")
+  evidenciaId    Int?           @map("evidencia_id")
+  creadoEn       DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
+  evidencia      Evidencia?     @relation(fields: [evidenciaId], references: [id])
+  punto          PuntoControl?  @relation(fields: [puntoId], references: [id])
+  tipo           TipoAlerta     @relation(fields: [tipoId], references: [id])
+  notificaciones Notificacion[]
+
+  @@index([creadoEn], map: "idx_alertas_creado")
+  @@index([tipoId, creadoEn], map: "idx_alertas_tipo_fecha")
+  @@map("alertas")
+}
+
+model ReglaAcceso {
+  id         Int      @id @default(autoincrement())
+  usuarioId  Int?     @map("usuario_id")
+  zonaId     Int?     @map("zona_id")
+  horaInicio DateTime @map("hora_inicio") @db.Time(6)
+  horaFin    DateTime @map("hora_fin") @db.Time(6)
+  diaSemana  Int?     @map("dia_semana")
+  activo     Boolean  @default(true)
+  creadoEn   DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
+  zona       Zona?    @relation(fields: [zonaId], references: [id])
+
+  @@unique([usuarioId, zonaId, diaSemana], map: "idx_reglas_uz_dia")
+  @@map("reglas_acceso")
+}
+
+model Notificacion {
+  id       Int                @id @default(autoincrement())
+  alertaId Int?               @map("alerta_id")
+  canalId  Int?               @map("canal_id")
+  destino  String
+  estado   String             @db.VarChar(20)
+  creadoEn DateTime           @default(now()) @map("creado_en") @db.Timestamptz(6)
+  alerta   Alerta?            @relation(fields: [alertaId], references: [id])
+  canal    CanalNotificacion? @relation(fields: [canalId], references: [id])
+
+  @@map("notificaciones")
+}
+
+model LogAuditoria {
+  id            Int      @id @default(autoincrement())
+  tablaAfectada String   @map("tabla_afectada") @db.VarChar(50)
+  campoAfectado String?  @map("campo_afectado") @db.VarChar(50)
+  registroId    BigInt?  @map("registro_id")
+  accion        String   @db.VarChar(20)
+  usuarioId     Int?     @map("usuario_id")
+  valorAnterior String?  @map("valor_anterior")
+  valorNuevo    String?  @map("valor_nuevo")
+  creadoEn      DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([tablaAfectada, registroId])
+  @@map("log_auditoria")
+}

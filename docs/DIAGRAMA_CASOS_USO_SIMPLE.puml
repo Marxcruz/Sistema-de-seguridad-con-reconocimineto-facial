@@ -1,0 +1,95 @@
+@startuml
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 12
+  FontStyle bold
+}
+
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  BorderThickness 1
+  FontColor #000000
+  FontSize 10
+  FontStyle plain
+}
+
+skinparam arrow {
+  Color #000000
+  FontColor #000000
+  FontSize 9
+  Thickness 1
+}
+
+skinparam rectangle {
+  BorderColor #666666
+  BackgroundColor #F8F8F8
+  RoundCorner 10
+}
+
+' === ACTORES ===
+actor "Administrador" as Admin
+actor "Supervisor" as Supervisor
+actor "Usuario" as User
+
+' === SISTEMA ===
+rectangle "Sistema de Seguridad con Reconocimiento Facial" {
+  
+  ' === ACCESO ===
+  usecase "Solicitar Acceso" as UC_Access
+  usecase "Procesar Rostro" as UC_Face
+  usecase "Detectar Liveness" as UC_Liveness
+  usecase "Validar Zona y Horario" as UC_Validate
+  usecase "Registrar Evento" as UC_Log
+  usecase "Generar Alerta" as UC_Alert
+
+  ' === ADMINISTRACIÓN ===
+  usecase "Iniciar Sesión" as UC_Login
+  usecase "Gestionar Usuarios" as UC_Users
+  usecase "Gestionar Reglas" as UC_Rules
+  usecase "Configurar Cámaras" as UC_Cameras
+  usecase "Configurar Sistema" as UC_Config
+
+  ' === MONITOREO ===
+  usecase "Monitorear Dashboard" as UC_Monitor
+  usecase "Ver Reportes" as UC_Reports
+  usecase "Exportar Reportes" as UC_Export
+  usecase "Gestionar Alertas" as UC_ManageAlerts
+}
+
+' === RELACIONES ACTORES ===
+User --> UC_Access
+
+Admin --> UC_Login
+Admin --> UC_Users
+Admin --> UC_Rules
+Admin --> UC_Cameras
+Admin --> UC_Config
+Admin --> UC_Monitor
+Admin --> UC_Reports
+Admin --> UC_Export
+Admin --> UC_ManageAlerts
+
+Supervisor --> UC_Login
+Supervisor --> UC_Monitor
+Supervisor --> UC_Reports : (solo lectura)
+Supervisor --> UC_ManageAlerts : (responder)
+
+' === FLUJO PRINCIPAL ===
+UC_Access --> UC_Face : <<include>>
+UC_Face --> UC_Liveness : <<include>>
+UC_Face --> UC_Validate : <<include>>
+UC_Access --> UC_Log : <<include>>
+
+' === EXTENSIONES ===
+UC_Validate ..> UC_Alert : <<extend>>
+UC_Reports --> UC_Export : <<include>>
+
+@enduml

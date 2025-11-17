@@ -1,0 +1,149 @@
+@startuml Diagrama_Clases_Sistema
+
+title Sistema de Seguridad con Reconocimiento Facial - Diagrama de Clases
+
+' Estilo compacto y limpio
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+' ===== CLASES PRINCIPALES =====
+
+class Usuario {
+  -id: String
+  -nombre: String
+  -email: String
+  -rol: String
+  -activo: boolean
+  --
+  +autenticar(): boolean
+  +tieneAccesoZona(): boolean
+}
+
+class Rostro {
+  -id: String
+  -embedding: byte[]
+  -calidad: float
+  --
+  +compararCon(): float
+  +validar(): boolean
+}
+
+class Zona {
+  -id: String
+  -nombre: String
+  -descripcion: String
+  -activo: boolean
+  --
+  +validarAcceso(): boolean
+}
+
+class PuntoControl {
+  -id: String
+  -nombre: String
+  -ubicacion: String
+  -cameraUrl: String
+  --
+  +procesarAcceso(): Acceso
+}
+
+class ReglaAcceso {
+  -id: String
+  -horaInicio: Time
+  -horaFin: Time
+  -diaSemana: int
+  -activo: boolean
+  --
+  +esValidaAhora(): boolean
+  }
+
+  class FaceRecognitionService {
+    -modelManager: TensorFlowModelManager
+    -threshold: float
+    +reconocerRostro(imagen: bytes): RecognitionResult
+    +registrarRostro(usuarioId: int, imagen: bytes): Rostro
+    +validarCalidadImagen(imagen: bytes): float
+    +procesarAccesoTiempoReal(imagen: bytes, puntoId: int): Acceso
+  }
+}
+
+' Paquete de Tipos de Catálogo
+package "Catálogos del Sistema" {
+  class TipoDecision {
+    -id: int
+    -nombre: string
+    +esAccesoPermitido(): boolean
+  }
+
+  class TipoPunto {
+    -id: int
+    -nombre: string
+    +getConfiguracionPunto(): PointConfig
+  }
+}
+
+' Paquete de Auditoría
+package "Auditoría y Logs" {
+  class LogAuditoria {
+    -id: int
+    -tablaAfectada: string
+    -campoAfectado: string
+    -registroId: bigint
+    -accion: string
+    -usuarioId: int
+    -valorAnterior: string
+    -valorNuevo: string
+    -creadoEn: DateTime
+    +registrarCambio(tabla: string, accion: string, datos: object): void
+    +generarReporteAuditoria(fechaInicio: DateTime, fechaFin: DateTime): AuditReport
+  }
+}
+
+' Relaciones entre clases
+
+' Relaciones Usuario
+Usuario ||--o{ Rostro : "tiene"
+Usuario ||--o{ ImagenEntrenamiento : "posee"
+Usuario ||--o{ Acceso : "realiza"
+Usuario ||--o{ ReglaAcceso : "tiene"
+Usuario ||--o{ LogAuditoria : "genera"
+Usuario }o--|| Rol : "pertenece a"
+
+' Relaciones Rostro y Modelos
+Rostro }o--|| ModeloFacial : "usa"
+ImagenEntrenamiento }o--|| ModeloFacial : "entrena"
+
+' Relaciones Control de Acceso
+Zona ||--o{ PuntoControl : "contiene"
+Zona ||--o{ ReglaAcceso : "aplica en"
+PuntoControl ||--o{ Acceso : "registra"
+PuntoControl }o--|| TipoPunto : "es de tipo"
+Acceso ||--o{ AccesoRostro : "incluye"
+Acceso }o--|| TipoDecision : "tiene"
+Acceso }o--|| Evidencia : "genera"
+
+' Relaciones Alertas
+PuntoControl ||--o{ Alerta : "genera"
+Alerta }o--|| TipoAlerta : "es de tipo"
+Alerta ||--o{ Notificacion : "produce"
+Alerta }o--|| Evidencia : "incluye"
+Notificacion }o--|| CanalNotificacion : "usa"
+
+' Relaciones Evidencias
+Evidencia }o--|| TipoEvidencia : "es de tipo"
+AccesoRostro }o--|| Evidencia : "incluye"
+
+' Relaciones de Servicios
+TensorFlowModelManager --> ModeloFacial : "usa"
+FaceRecognitionService --> TensorFlowModelManager : "utiliza"
+FaceRecognitionService --> Rostro : "procesa"
+FaceRecognitionService --> Acceso : "genera"
+
+' Notas sobre requisitos no funcionales
+note right of FaceRecognitionService : "Tiempo de procesamiento < 500ms (RNF1)"
+note right of Rostro : "Embeddings encriptados (RNF4)"
+note right of TensorFlowModelManager : "Transfer Learning sin downtime (RNF7)"
+note right of LogAuditoria : "Integridad y consistencia de datos (RNF5)"
+
+@enduml

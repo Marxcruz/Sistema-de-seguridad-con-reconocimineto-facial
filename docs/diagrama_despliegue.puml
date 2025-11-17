@@ -1,0 +1,112 @@
+@startuml Diagrama_Despliegue_Sistema_Reconocimiento_Facial
+
+title Diagrama de Despliegue - Sistema de Seguridad con Reconocimiento Facial
+
+skinparam componentStyle rectangle
+skinparam backgroundColor #FEFEFE
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam noteFontSize 10
+
+' ==================== NODO: ESTACIÓN DE CONTROL ====================
+node "**Estación de Control**\n(PC en Punto de Acceso)" as EstacionControl {
+    artifact "**App Escritorio**\nPython + Tkinter\nOpenCV" as AppEscritorio
+    component "Cámara USB" as CamaraUSB
+}
+
+' ==================== NODO: CÁMARA IP ====================
+node "**Cámara IP**\n(Opcional)" as CamaraIP {
+    artifact "DroidCam\nHTTP Stream" as DroidCamApp
+}
+
+' ==================== NODO: SERVIDOR DE APLICACIÓN ====================
+node "**Servidor de Aplicación**\n(PC Central)" as ServidorApp {
+    artifact "**API Python**\nFastAPI:8000\nTensorFlow + DeepFace\nOpenCV" as APIFastAPI
+    artifact "**Dashboard Web**\nNext.js:3000\nPrisma ORM\nJWT Auth" as DashboardWeb
+}
+
+' ==================== NODO: BASE DE DATOS ====================
+node "**Base de Datos**" as ServidorBD {
+    database "**PostgreSQL:5432**\n18 Tablas\nEmbeddings\nAccesos/Alertas" as PostgreSQL
+}
+
+' ==================== NODO: ALMACENAMIENTO DE ARCHIVOS ====================
+node "**Almacenamiento**" as SistemaArchivos {
+    folder "Evidencias\nFotográficas" as Evidencias
+    folder "Modelos IA\nPre-entrenados" as Modelos
+}
+
+' ==================== NODO: CLIENTE WEB ====================
+node "**Cliente Web**\n(Navegador)" as ClienteWeb {
+    component "React SPA\nJWT Token" as Navegador
+}
+
+' ==================== NODO: SERVICIOS EXTERNOS ====================
+cloud "**Servicios Externos**" as ServiciosExternos {
+    component "Email (SMTP)" as SMTP
+    component "Telegram Bot" as TelegramAPI
+}
+
+' ==================== RELACIONES Y PROTOCOLOS ====================
+
+' Estación de Control → API Python
+EstacionControl --> APIFastAPI : "HTTP:8000\nPOST /recognize-face"
+
+' Cámara IP → Estación de Control
+CamaraIP .right.> EstacionControl : "HTTP Stream\n:4747/video"
+
+' API Python → Base de Datos
+APIFastAPI --> PostgreSQL : "TCP:5432\nSQL Queries"
+
+' Dashboard Web → Base de Datos
+DashboardWeb --> PostgreSQL : "TCP:5432\nPrisma ORM"
+
+' API Python → Sistema de Archivos
+APIFastAPI --> SistemaArchivos : "File I/O\nEvidencias"
+
+' Cliente Web → Dashboard Web
+ClienteWeb --> DashboardWeb : "HTTPS:3000\nJSON + JWT"
+
+' API Python → Servicios Externos
+APIFastAPI .up.> ServiciosExternos : "SMTP/HTTPS\nNotificaciones"
+
+' ==================== NOTAS TÉCNICAS ====================
+
+note right of ServidorApp
+  **Servidor Central:**
+  - CPU: i5/i7 o Ryzen 5/7
+  - RAM: 8-16 GB
+  - Disco: 50 GB SSD
+  
+  **Puertos:**
+  - 3000 (Dashboard)
+  - 8000 (API IA)
+  - 5432 (PostgreSQL)
+end note
+
+note left of EstacionControl
+  **Punto de Acceso:**
+  - PC/Laptop i3+
+  - RAM: 4 GB
+  - Cámara 720p
+  - Python 3.11
+end note
+
+' ==================== LEYENDA ====================
+
+legend bottom center
+  **Stack Tecnológico:**
+  • IA/ML: TensorFlow 2.15, DeepFace, OpenCV
+  • Backend: FastAPI (Python 3.11)
+  • Frontend: Next.js 14, React, TypeScript
+  • Database: PostgreSQL 15, Prisma ORM
+  • Seguridad: JWT, bcrypt, Fernet
+  
+  **Puertos:**
+  8000 (API Python) | 3000 (Dashboard) | 5432 (PostgreSQL) | 4747 (DroidCam)
+  
+  **Cumplimiento RNF:**
+  ✓ Procesamiento < 500ms | ✓ Multi-cámara | ✓ Escalable
+end legend
+
+@enduml

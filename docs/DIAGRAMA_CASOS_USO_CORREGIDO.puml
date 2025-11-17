@@ -1,0 +1,182 @@
+@startuml
+left to right direction
+
+' Estilo StarUML - minimalista
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 14
+  FontStyle bold
+}
+
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  BorderThickness 1
+  FontColor #000000
+  FontSize 12
+  FontStyle plain
+}
+
+skinparam arrow {
+  Color #000000
+  FontColor #000000
+  FontSize 11
+  Thickness 1
+}
+
+skinparam rectangle {
+  BorderColor #666666
+  BackgroundColor #F8F8F8
+  RoundCorner 10
+}
+
+' === ACTORES ===
+actor "Administrador" as Admin
+actor "Supervisor" as Supervisor
+actor "Usuario" as User
+actor "Sistema Externo" as ExternalSystem
+
+' === SISTEMA PRINCIPAL ===
+rectangle "Sistema de Seguridad con Reconocimiento Facial" {
+  ' === ACCESO DEL USUARIO ===
+  usecase "Solicitar Acceso" as UC_RequestAccess
+  usecase "Procesar Rostro" as UC_ProcessFace
+  usecase "Detectar Liveness" as UC_Liveness
+  usecase "Tomar Decisión de Acceso" as UC_DecideAccess
+  usecase "Validar Zona y Horario" as UC_ValidateZoneTime
+  usecase "Registrar Evento" as UC_LogEvent
+  usecase "Guardar Evidencia" as UC_SaveEvidence
+  usecase "Generar Alerta" as UC_GenerateAlert
+  usecase "Enviar Notificaciones" as UC_SendNotifications
+
+  ' === ADMINISTRACIÓN (SOLO ADMIN) ===
+  usecase "Iniciar Sesión" as UC_Login
+  usecase "Gestionar Usuarios" as UC_ManageUsers
+  usecase "Registrar Rostro" as UC_RegisterFace
+  usecase "Gestionar Reglas de Acceso" as UC_ManageRules
+  usecase "Gestionar Zonas y Puntos de Control" as UC_ManageZonesCheckpoints
+  usecase "Configurar Cámaras" as UC_ConfigureCameras
+  usecase "Configurar Múltiples Cámaras" as UC_MultiCamera
+  usecase "Sincronizar Dashboard-Escritorio" as UC_Sync
+  usecase "Exportar Reportes" as UC_ExportReports
+  usecase "Configurar Sistema" as UC_ConfigureSystem
+  usecase "Gestionar Horarios de Acceso" as UC_ConfigureSchedules
+
+  ' === MONITOREO (ADMIN Y SUPERVISOR) ===
+  usecase "Monitorear Dashboard" as UC_MonitorDashboard
+  usecase "Ver Auditoría y Reportes" as UC_ViewReports
+  usecase "Responder Alertas" as UC_RespondAlerts
+  usecase "Marcar Alertas como Vistas" as UC_MarkAlerts
+}
+
+' === RELACIONES CON ACTORES ===
+
+' USUARIO - Solo acceso
+User --> UC_RequestAccess
+
+' ADMINISTRADOR - Control total
+Admin --> UC_Login
+Admin --> UC_ManageUsers
+Admin --> UC_ManageRules
+Admin --> UC_ManageZonesCheckpoints
+Admin --> UC_ConfigureCameras
+Admin --> UC_ConfigureSystem
+Admin --> UC_ExportReports
+Admin --> UC_MonitorDashboard
+Admin --> UC_ViewReports
+Admin --> UC_RespondAlerts
+Admin --> UC_MarkAlerts
+
+' SUPERVISOR - Solo monitoreo y respuesta
+Supervisor --> UC_Login
+Supervisor --> UC_MonitorDashboard
+Supervisor --> UC_ViewReports : (solo lectura)
+Supervisor --> UC_RespondAlerts
+Supervisor --> UC_MarkAlerts
+
+' === FLUJO PRINCIPAL (INCLUDES) ===
+UC_RequestAccess --> UC_ProcessFace : <<include>>
+UC_ProcessFace --> UC_Liveness : <<include>>
+UC_ProcessFace --> UC_DecideAccess : <<include>>
+UC_DecideAccess --> UC_ValidateZoneTime : <<include>>
+UC_DecideAccess --> UC_LogEvent : <<include>>
+UC_LogEvent --> UC_SaveEvidence : <<include>>\n(Evidencia de acceso)
+
+' === EXTENSIONES CONDICIONALES ===
+UC_DecideAccess ..> UC_GenerateAlert : <<extend>>\n(acceso denegado / fuera de horario /\nzona restringida / desconocido)
+UC_GenerateAlert --> UC_SaveEvidence : <<include>>\n(Evidencia de alerta)
+UC_GenerateAlert --> UC_SendNotifications : <<include>>
+
+' === ADMIN DETALLE ===
+UC_ManageUsers --> UC_RegisterFace : <<include>>\n(Registro facial)
+UC_ManageZonesCheckpoints --> UC_ConfigureCameras : <<include>>
+UC_ConfigureCameras --> UC_MultiCamera : <<include>>\n(USB + IP)
+UC_ConfigureCameras --> UC_Sync : <<include>>\n(Web ↔ Escritorio)
+UC_ManageRules --> UC_ConfigureSchedules : <<include>>\n(Horarios por zona)
+UC_ViewReports --> UC_ExportReports : <<include>>\n(PDF/Excel - Solo Admin)
+
+' === ALERTAS DETALLADAS ===
+UC_RespondAlerts --> UC_MarkAlerts : <<include>>
+UC_GenerateAlert --> UC_RespondAlerts : <<extend>>\n(requiere respuesta)
+
+' === INTEGRACIONES EXTERNAS ===
+UC_SendNotifications --> ExternalSystem : (Email/Telegram)
+UC_ExportReports --> ExternalSystem : <<extend>>\n(Integración externa)
+
+' === NOTAS TÉCNICAS ===
+note bottom of UC_ProcessFace
+  <b>Requerimientos No Funcionales</b>
+  - RNF1: Latencia ≤ 500ms
+  - RNF4: Cifrado biométrico AES-128
+  - RNF5: Integridad de logs
+  - RNF6: Backup automático
+  - RNF7: Disponibilidad 99.9%
+end note
+
+note right of Supervisor
+  <b>Principio de Menor Privilegio</b>
+  - Solo monitoreo en tiempo real
+  - Respuesta a alertas
+  - Reportes de solo lectura
+  - Sin permisos de configuración
+  - Sin exportación de datos
+end note
+
+note bottom of UC_MultiCamera
+  <b>Arquitectura Multi-Cámara</b>
+  - USB, HTTP/MJPEG, RTSP
+  - Configuración centralizada web
+  - Sincronización automática
+  - Fallback a USB
+  - 9+ cámaras IP soportadas
+end note
+
+note top of UC_GenerateAlert
+  <b>Tipos de Alerta (6)</b>
+  1. Acceso no autorizado
+  2. Falla prueba de vida
+  3. Usuario desconocido
+  4. Múltiples intentos
+  5. Acceso fuera de horario
+  6. Zona restringida
+end note
+
+' === LEYENDA MEJORADA ===
+legend top right
+  |= Relación       |= Significado                    |
+  | <<include>>     | Inclusión obligatoria           |
+  | <<extend>>      | Extensión condicional           |
+  | --->            | Asociación directa              |
+  | (solo lectura)  | Permisos limitados              |
+  |= Actor          |= Nivel de Acceso                |
+  | Administrador   | Control total del sistema       |
+  | Supervisor      | Monitoreo y respuesta           |
+  | Usuario         | Solo solicitud de acceso        |
+end legend
+
+@enduml
